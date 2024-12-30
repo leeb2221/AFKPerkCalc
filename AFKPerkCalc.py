@@ -2,6 +2,68 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 
+def PWR_Wave(PWR, R, ban, x):
+    """
+    Calculate the value based on the piecewise mathematical expressions
+    for the given values of PWR, R, ban, and x.
+    """
+    if 0 <= x < 21:
+        return np.floor((200 - PWR) * (1 - R)) * np.floor(x)
+    
+    elif 21 <= x < 31:
+        return (
+            np.floor((250 - PWR) * (1 - R)) * np.floor(x)
+            - (
+                -np.floor((250 - PWR) * (1 - R))
+                + np.floor((250 - PWR) * (1 - R)) * np.floor(21)
+                - np.floor((200 - PWR) * (1 - R)) * np.floor(20)
+            )
+        )
+    
+    elif 31 <= x < 41:
+        return (
+        np.floor((300 - PWR) * (1 - R)) * np.floor(x)
+        - (
+            np.floor((300 - PWR) * (1 - R)) * np.floor(31)
+            - (
+                np.floor((250 - PWR) * (1 - R)) * np.floor(30)
+                - (
+                    -np.floor((250 - PWR) * (1 - R))
+                    + np.floor((250 - PWR) * (1 - R)) * np.floor(21)
+                    - np.floor((200 - PWR) * (1 - R)) * np.floor(20)
+                )
+            )
+            - np.floor((300 - PWR) * (1 - R))
+        )
+    )
+    
+    elif 41 <= x <= 79 - ban:
+        return (
+            np.floor((350 - PWR) * (1 - R)) * np.floor(x)
+            - (
+                np.floor((350 - PWR) * (1 - R)) * np.floor(41)
+                - (
+                    np.floor((300 - PWR) * (1 - R)) * np.floor(40)
+                    - (
+                        np.floor((300 - PWR) * (1 - R)) * np.floor(31)
+                        - (
+                            np.floor((250 - PWR) * (1 - R)) * np.floor(30)
+                            - (
+                                -np.floor((250 - PWR) * (1 - R))
+                                + np.floor((250 - PWR) * (1 - R)) * np.floor(21)
+                                - np.floor((200 - PWR) * (1 - R)) * np.floor(20)
+                            )
+                        )
+                    )
+                )
+                - np.floor((300 - PWR) * (1 - R))
+                - np.floor((350 - PWR) * (1 - R))
+            )
+        )
+    
+    else:
+        return None  # Return None if x doesn't fall within any of the defined ranges
+
 def weighted_draw(bag, num_draws):
     if not bag:
         return []  # Return an empty list if the bag is empty
@@ -106,12 +168,50 @@ def play_game():
     
     Num_Options = 4
 
+    Max_wave = 3510
+    PWR = 3  # Perk Wave Reduction Lab
+    SPB = 10  # Standard Perk Bonus in %
+    ban = 2  # How many bans
+
     round_number = 1
     last_round_max = None
     rounds_with_PWR = []
     rounds_with_avoid_perks = []
+    drop_wave = 0
 
     while bag:
+
+        if len(rounds_with_PWR) == 0:
+            R = 0
+            wave = PWR_Wave(PWR, R, ban, round_number)
+        elif len(rounds_with_PWR) == 1:
+            R = 0.2*1*(1+SPB/100)
+            wave = PWR_Wave(PWR, R, ban, round_number)
+        elif len(rounds_with_PWR) == 2:
+            R = 0.2*2*(1+SPB/100)
+            wave = PWR_Wave(PWR, R, ban, round_number)
+        elif len(rounds_with_PWR) == 3:
+            R = 0.2*3*(1+SPB/100)
+            wave = PWR_Wave(PWR, R, ban, round_number)
+  
+
+
+        if wave > Max_wave:
+            if [perk for perk in bag if perk[4] == 2]:
+                last_round_max = None
+            if not rounds_with_avoid_perks:
+                rounds_with_avoid_perks.append(None)
+            if not rounds_with_PWR:
+                rounds_with_PWR.append(None)
+            if len(rounds_with_PWR) != 3:
+                perk_flag = None
+                rounds_with_PWR = []
+            else:
+                perk_flag = 1
+            wave = drop_wave
+            break
+
+        drop_wave = wave
         
         # Draw perks
         drawn_perks = draw_perks(bag, round_number, Num_Options)
@@ -156,21 +256,28 @@ def play_game():
         round_number += 1
 
     if not rounds_with_avoid_perks:
-        rounds_with_avoid_perks.append(round_number)
+        rounds_with_avoid_perks.append(None)
+    if not rounds_with_PWR:
+        rounds_with_PWR.append(None)
     
-    return last_round_max, max(rounds_with_PWR), min(rounds_with_avoid_perks)
+    return last_round_max, max(rounds_with_PWR), min(rounds_with_avoid_perks), wave, round_number-1,perk_flag
 
 def run_simulation(num_games):
     total_last_round_max = 0
     total_PWR_rounds = 0
     total_avoid_perk_rounds = 0
+    total_wave = 0
+    total_perk = 0
 
     std_max = []
     std_PWR = []
     std_avoid = []
+    std_wave = []
+    std_perk = []
+    perk_flag_tally = []
 
     for _ in range(num_games):
-        last_round_max, last_round_PWR, first_round_avoid = play_game()
+        last_round_max, last_round_PWR, first_round_avoid, wave, perk_amount, perk_flag = play_game()
         if last_round_max is not None:
             std_max.append(last_round_max)
             total_last_round_max += last_round_max
@@ -180,25 +287,41 @@ def run_simulation(num_games):
         if first_round_avoid is not None:
             std_avoid.append(first_round_avoid)
             total_avoid_perk_rounds += first_round_avoid
+        if wave is not None:
+            std_wave.append(wave)
+            total_wave += wave
+        if perk_amount is not None:
+            std_perk.append(perk_amount)
+            total_perk += perk_amount
+        if perk_flag is not None:
+            perk_flag_tally.append(perk_flag)
         
 
 
     avg_last_round_max = total_last_round_max / num_games
     avg_last_round_PWR = total_PWR_rounds / num_games
     avg_fist_round_avoid = total_avoid_perk_rounds / num_games
+    avg_wave = total_wave / num_games
+    avg_perk = total_perk / num_games
 
     std_max_out = np.std(std_max)
     std_PWR_out = np.std(std_PWR)
     std_avoid_out = np.std(std_avoid)
 
-    return avg_last_round_max, avg_last_round_PWR, avg_fist_round_avoid, std_max_out, std_PWR_out, std_avoid_out, std_max, std_PWR, std_avoid
+    return avg_last_round_max, avg_last_round_PWR, avg_fist_round_avoid, std_max_out, std_PWR_out, std_avoid_out, std_max, std_PWR, std_avoid, avg_wave, std_wave, avg_perk, std_perk, perk_flag_tally
 
 if __name__ == "__main__":
-    num_games = 100000
-    avg_last_round_max, avg_PWR_rounds, avg_avoid_perk_rounds, std_max, std_PWR, std_avoid, max_data, PWR_data, avoid_data = run_simulation(num_games)
-    print(f"\nAverage,std last round a perk to max was selected: {avg_last_round_max}, {std_max}")
-    print(f"Average,std last round PWR was selected:             {avg_PWR_rounds}, {std_PWR}")
-    print(f"Average,std first round perks to avoid was selected: {avg_avoid_perk_rounds}, {std_avoid}\n")
+    num_games = 10000
+    avg_last_round_max, avg_PWR_rounds, avg_avoid_perk_rounds, std_max, std_PWR, std_avoid, max_data, PWR_data, avoid_data, avg_wave, wave_data, avg_perk, perk_data, perk_flags = run_simulation(num_games)
+    print(f"\nAverage,std last round a perk to max was selected:   {avg_last_round_max:.4f}, {std_max:.4f}")
+    print(f"Average,std last round PWR was selected:             {avg_PWR_rounds:.4f}, {std_PWR:.4f}")
+    print(f"Average,std first round perks to avoid was selected: {avg_avoid_perk_rounds:.4f}, {std_avoid:.4f}\n")
+    print(f"Percentage of times you maxed:          {100*(len(max_data)/num_games):.4f}%")
+    print(f"Percentage of times you maxed PWR:      {100*(len(perk_flags)/num_games):.4f}%")
+    print(f"Percentage of times you hit avoid perk: {100*(len(avoid_data)/num_games):.4f}%\n")
+    print(f"Average amount of perks gained:         {avg_perk:.4f}")
+    print(f"Average last wave to get perk:          {avg_wave:.4f}\n")
+    
 
     bin_edge = np.arange(80)
 
