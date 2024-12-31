@@ -122,9 +122,9 @@ def draw_perks(bag, round_number, num_options):
 
 def play_game():
 
-    Num_Options = 4
+    Num_Options = 4 # How many perk options you get during a pick
 
-    Max_wave = 1810
+    Max_wave = 1810 # Max wave you expect in run
     PWR = 3  # Perk Wave Reduction Lab
     SPB = 9  # Standard Perk Bonus in %
     ban = 2  # How many bans
