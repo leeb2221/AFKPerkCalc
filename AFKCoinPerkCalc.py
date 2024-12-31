@@ -129,7 +129,7 @@ def play_game():
     SPB = 9  # Standard Perk Bonus in %
     ban = 2  # How many bans
 
-    # Name,       Type, Amount, Priority, Misc, First Pick Perk
+    # Name,       Type, Amount, Priority, Misc, First Pick Perk, Rarity, coin tracker
     # Type Key: 0=Banned, 1=Auto, 2=Neither (just a normal perk)
     # Priority Key: Highest number is higher priority
     # Misc Key: 
@@ -137,6 +137,8 @@ def play_game():
     #   2 = Perks to max tracker, outputs round you got all perks to max
     #   3 = Track last round of perk wave requirement
     # First Pick Key: 1 for first pick, if none the 0 for all.
+    # Rarity key: 1 standard, 2 ults, 3 trade offs
+    # Coin bounus tracker 1 if it boosts coin, 0 if not
     bag = [
         ("Max Health",          1, 5, 5, 0, 0, 1, 0), 
         ("Damage",              2, 5, 0, 0, 0, 1, 0), 
@@ -297,7 +299,7 @@ def run_simulation(num_games):
 
 
 if __name__ == "__main__":
-    num_games = 10000
+    num_games = 100000
     avg_GT_wave, avg_CTO_wave, avg_coin_rounds, round_GT_data, round_CTO_data, round_coins_data, max_wave = run_simulation(num_games)
     print(f"\nAssuming max wave:  {max_wave}")
     print(f"Simulating {num_games} games\n")
